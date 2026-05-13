@@ -190,11 +190,11 @@ const SPACE_SPACING = SPACING * 0.75;
 const LETTER_SCALE = 1.0;
 
 let currentTotalWidth = 100;
-function fitCameraToAspect(aspect, pad = OBS_MODE ? 1.35 : 1) {
+function fitCameraToAspect(aspect, pad = OBS_MODE ? 1.08 : 1) {
   const letterHeight = 70 * stretchYVal;
   const inscriptionWidth = (currentTotalWidth * stretchXVal + 30) * pad;
   const targetW = inscriptionWidth * 1.12;
-  const targetH = letterHeight * (pad > 1 ? 1.85 : 1.45);
+  const targetH = letterHeight * (pad > 1 ? 1.22 : 1.45);
   let viewW = targetW;
   let viewH = targetW / aspect;
   if (viewH < targetH) {
@@ -547,6 +547,38 @@ async function exportGif() {
   const captureCtx = captureCanvas.getContext('2d', { willReadFrequently: true });
   const sampleStride = Math.max(1, Math.floor(Math.sqrt(totalFrames / 30)));
   const sampledPixels = [];
+  const crop = { minX: width, minY: height, maxX: -1, maxY: -1 };
+
+  function includeOpaqueBounds(image) {
+    const data = image.data;
+    for (let y = 0; y < image.height; y++) {
+      const row = y * image.width * 4;
+      for (let x = 0; x < image.width; x++) {
+        if (data[row + x * 4 + 3] > 12) {
+          if (x < crop.minX) crop.minX = x;
+          if (y < crop.minY) crop.minY = y;
+          if (x > crop.maxX) crop.maxX = x;
+          if (y > crop.maxY) crop.maxY = y;
+        }
+      }
+    }
+  }
+
+  function paddedCropRect() {
+    if (crop.maxX < crop.minX || crop.maxY < crop.minY) {
+      return { x: 0, y: 0, w: width, h: height };
+    }
+    const pad = Math.max(10, Math.round(Math.min(width, height) * 0.035));
+    const x = Math.max(0, crop.minX - pad);
+    const y = Math.max(0, crop.minY - pad);
+    const right = Math.min(width - 1, crop.maxX + pad);
+    const bottom = Math.min(height - 1, crop.maxY + pad);
+    return { x, y, w: right - x + 1, h: bottom - y + 1 };
+  }
+
+  function cropImageData(rect) {
+    return captureCtx.getImageData(rect.x, rect.y, rect.w, rect.h);
+  }
 
   function renderExportFrame(i) {
     const wobbleSlider = Number(document.getElementById('wobbleSpeed').value);
@@ -575,15 +607,21 @@ async function exportGif() {
 
     for (let i = 0; i < totalFrames; i++) {
       const image = renderExportFrame(i);
+      includeOpaqueBounds(image);
       for (let p = 0; p < image.data.length; p += 4 * sampleStride) {
         if (image.data[p + 3] > 127) {
           sampledPixels.push(image.data[p], image.data[p + 1], image.data[p + 2], 255);
         }
       }
       if (i % 12 === 0 || i === totalFrames - 1) {
-        status.textContent = `Sampling colors ${i + 1}/${totalFrames}...`;
+        status.textContent = `Sampling loop ${i + 1}/${totalFrames}...`;
         await new Promise(resolve => setTimeout(resolve, 0));
       }
+    }
+
+    const cropRect = paddedCropRect();
+    if (sampledPixels.length === 0) {
+      sampledPixels.push(0, 0, 0, 255);
     }
 
     const opaquePalette = quantize(new Uint8Array(sampledPixels), 255, {
@@ -594,7 +632,8 @@ async function exportGif() {
     const gif = GIFEncoder();
 
     for (let i = 0; i < totalFrames; i++) {
-      const image = renderExportFrame(i);
+      renderExportFrame(i);
+      const image = cropImageData(cropRect);
       const index = applyPalette(image.data, palette, 'rgb565');
       for (let p = 0, idx = 0; p < image.data.length; p += 4, idx++) {
         if (image.data[p + 3] <= 127) index[idx] = transparentIndex;
@@ -608,7 +647,7 @@ async function exportGif() {
         dispose: 2,
       };
       if (i === 0) frameOptions.palette = palette;
-      gif.writeFrame(index, width, height, frameOptions);
+      gif.writeFrame(index, cropRect.w, cropRect.h, frameOptions);
 
       if (i % 8 === 0 || i === totalFrames - 1) {
         status.textContent = `Encoding ${i + 1}/${totalFrames} frames...`;
@@ -626,7 +665,7 @@ async function exportGif() {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
-    status.textContent = `GIF exported (${width}x${height}, ${totalFrames} frames).`;
+    status.textContent = `GIF exported (${cropRect.w}x${cropRect.h}, ${totalFrames} frames).`;
   } catch (error) {
     console.error(error);
     status.textContent = 'GIF export failed.';
@@ -844,4 +883,3 @@ requestAnimationFrame(tick);
 
 // Hide the loader
 setTimeout(() => document.getElementById('loading').classList.add('hide'), 400);
-

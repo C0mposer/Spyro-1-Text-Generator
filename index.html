@@ -365,20 +365,23 @@
           </div>
 
           <div class="setting-group">
-            <div class="group-title">Export</div>
+            <div class="group-title">Browser Source</div>
             <button id="copyObsLink" class="copy-button" type="button">Copy Browser Source</button>
             <div id="copyStatus" class="copy-status" aria-live="polite"></div>
+          </div>
 
+          <div class="setting-group">
+            <div class="group-title">GIF Export</div>
             <div class="export-row">
               <select id="gifFps" aria-label="GIF export frame rate">
                 <option value="30">30 FPS</option>
-                <option value="60">60 FPS</option>
+                <option value="60" selected>60 FPS</option>
               </select>
               <select id="gifWidth" aria-label="GIF export resolution">
                 <option value="720">720p</option>
-                <option value="1080" selected>1080p</option>
+                <option value="1080">1080p</option>
                 <option value="1440">1440p</option>
-                <option value="2160">2160p</option>
+                <option value="2160" selected>2160p</option>
               </select>
             </div>
             <div class="export-row">
@@ -461,7 +464,7 @@
     </section>
   </main>
 
-  <script src="data.js?v=20260513-18"></script>
+  <script src="data.js?v=20260513-20"></script>
   <script type="importmap">
   {
     "imports": {
@@ -470,7 +473,7 @@
     }
   }
   </script>
-  <script type="module" src="app.js?v=20260513-18"></script>
+  <script type="module" src="app.js?v=20260513-20"></script>
 </body>
 </html>
 
