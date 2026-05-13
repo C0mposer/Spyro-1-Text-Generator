@@ -36,6 +36,16 @@
     margin-bottom: 22px;
     padding-top: 6px;
     text-align: center;
+    position: relative;
+  }
+
+  header::after {
+    content: "";
+    display: block;
+    width: min(420px, 72vw);
+    height: 1px;
+    margin: 18px auto 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 211, 106, 0.7), transparent);
   }
 
   h1 {
@@ -43,20 +53,24 @@
     font-size: clamp(30px, 4vw, 46px);
     line-height: 1;
     letter-spacing: 0;
-    color: var(--accent-2);
+    color: #ffd66c;
     text-shadow:
-      0 2px 0 rgba(82, 50, 7, 0.85),
-      0 0 22px rgba(217, 170, 63, 0.28);
+      0 2px 0 #503106,
+      0 4px 10px rgba(0, 0, 0, 0.45),
+      0 0 24px rgba(255, 211, 106, 0.22);
   }
 
   .description {
     display: inline-block;
     margin: 12px 0 0;
-    padding: 7px 14px;
-    border-top: 1px solid rgba(255, 211, 106, 0.18);
-    border-bottom: 1px solid rgba(255, 211, 106, 0.18);
-    color: var(--muted);
+    padding: 0 0 9px;
+    border: 0;
+    border-bottom: 1px solid rgba(255, 211, 106, 0.22);
+    border-radius: 0;
+    background: transparent;
+    color: #d7c8aa;
     font-size: 16px;
+    box-shadow: none;
   }
 
   .stage {
@@ -340,7 +354,7 @@
   <main class="wrap">
     <header>
       <h1>Spyro 1 Text Generator</h1>
-      <p class="description">Generate text faithful to the Spyro 1 3D Font</p>
+      <p class="description">Generate text faithful to Spyro the Dragon</p>
     </header>
 
     <section class="stage" aria-label="Text preview">
@@ -464,7 +478,7 @@
     </section>
   </main>
 
-  <script src="data.js?v=20260513-20"></script>
+  <script src="data.js?v=20260513-25"></script>
   <script type="importmap">
   {
     "imports": {
@@ -473,7 +487,6 @@
     }
   }
   </script>
-  <script type="module" src="app.js?v=20260513-20"></script>
+  <script type="module" src="app.js?v=20260513-25"></script>
 </body>
 </html>
-

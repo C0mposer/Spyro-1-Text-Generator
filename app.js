@@ -157,22 +157,28 @@ const flatLitMat = new THREE.ShaderMaterial({
     varying vec3 vNormal;
 
     void main() {
-      // Two-sided lighting: faces facing the light go brighter, faces facing
-      // away get the dim base color. GTE clamps negative dot to 0.
+      // Two-sided lighting: faces facing the light go brighter. The real GTE
+      // path keeps signed intermediate values long enough for faces to dip
+      // below the palette back color before final clamp, which creates the
+      // brief darker shadow pulse seen during stronger shimmer.
       // Spyro feeds a non-unit light vector into the GTE color matrix:
       // X ~= 0.97, Y = -0.25, Z ~= 1.55. Keeping that unequal scale gives the
       // broad moving shadow/shine sweep that a normalized dot product loses.
-      float d = max(0.0, dot(normalize(vNormal), lightDir));
+      float rawLight = dot(normalize(vNormal), lightDir);
+      float d = max(0.0, rawLight);
+      float shadow = clamp(-rawLight, 0.0, 1.35);
 
       // The palette color is the back color, and the light
       // adds a white component scaled by the palette's high nibble.
       float lit = d * intensity * lightGain * 0.72;
+      float shade = shadow * intensity * 0.38;
 
-      // Compose: ambient + base + lit-by-normal white component
-      vec3 col = baseColor + vec3(lit) + vec3(ambient);
+      // Compose: base + lit-by-normal white component, with signed shadow
+      // reducing the base color on faces opposite the moving light.
+      vec3 col = baseColor * (1.0 - shade) + vec3(lit) + vec3(ambient);
 
       // Clamp to display range
-      gl_FragColor = vec4(min(col, vec3(1.0)), 1.0);
+      gl_FragColor = vec4(clamp(col, vec3(0.0), vec3(1.0)), 1.0);
     }
   `,
 });
@@ -306,7 +312,7 @@ function applyColorHex(hex) {
 }
 
 function setShimmerIntensity(percent) {
-  shimmerIntensityVal = Math.max(0, Math.min(2, percent / 50));
+  shimmerIntensityVal = Math.max(0, Math.min(4, percent / 50));
   document.getElementById('shimmerIntensityVal').textContent = `${Math.round(percent)}%`;
 }
 
