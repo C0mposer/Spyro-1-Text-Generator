@@ -447,7 +447,7 @@ async function copyObsLink() {
 
 const PRESETS = {
   accurate: {
-    wobbleSpeed: 10,
+    wobbleSpeed: 9,
     wobbleIntensity: 80,
     wobbleDelay: 10,
     shimmerSpeed: 4,
