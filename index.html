@@ -1,0 +1,476 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Spyro 1 Text Generator</title>
+<style>
+  :root {
+    --bg: #0b0714;
+    --panel: #15101f;
+    --panel-2: #1d1729;
+    --border: #342a46;
+    --text: #f3eadb;
+    --muted: #b9ad9a;
+    --accent: #d9aa3f;
+    --accent-2: #ffd36a;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at 50% -20%, #24183a 0%, var(--bg) 45%, #05040a 100%);
+    color: var(--text);
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  .wrap {
+    width: min(1120px, calc(100vw - 32px));
+    margin: 0 auto;
+    padding: 28px 0 40px;
+  }
+
+  header {
+    margin-bottom: 22px;
+    padding-top: 6px;
+    text-align: center;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(30px, 4vw, 46px);
+    line-height: 1;
+    letter-spacing: 0;
+    color: var(--accent-2);
+    text-shadow:
+      0 2px 0 rgba(82, 50, 7, 0.85),
+      0 0 22px rgba(217, 170, 63, 0.28);
+  }
+
+  .description {
+    display: inline-block;
+    margin: 12px 0 0;
+    padding: 7px 14px;
+    border-top: 1px solid rgba(255, 211, 106, 0.18);
+    border-bottom: 1px solid rgba(255, 211, 106, 0.18);
+    color: var(--muted);
+    font-size: 16px;
+  }
+
+  .stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: linear-gradient(180deg, #070410, #120b20);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 20px 0;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  #loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(5, 4, 10, 0.82);
+    color: var(--accent-2);
+    font-size: 14px;
+    letter-spacing: 0;
+    transition: opacity 0.2s;
+  }
+
+  #loading.hide {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .panel {
+    background: color-mix(in srgb, var(--panel) 92%, black);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px;
+  }
+
+  .field {
+    margin-bottom: 16px;
+  }
+
+  .field:last-child {
+    margin-bottom: 0;
+  }
+
+  label,
+  .label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  input[type="text"] {
+    width: 100%;
+    height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: #090611;
+    color: var(--accent-2);
+    font-size: 20px;
+    outline: none;
+  }
+
+  input[type="text"]:focus,
+  input[type="color"]:focus,
+  input[type="range"]:focus-visible {
+    outline: 2px solid rgba(255, 211, 106, 0.32);
+    outline-offset: 2px;
+  }
+
+  .color-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  input[type="color"] {
+    width: 56px;
+    height: 42px;
+    padding: 3px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: #090611;
+    cursor: pointer;
+  }
+
+  .color-readout {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .toggle input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+  }
+
+  .slider-row {
+    display: grid;
+    grid-template-columns: 150px 1fr 42px;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .slider-row .label {
+    margin: 0;
+    font-weight: 400;
+    color: var(--muted);
+  }
+
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+  }
+
+  .val {
+    color: var(--accent-2);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .copy-button {
+    width: 100%;
+    height: 42px;
+    border: 1px solid rgba(255, 211, 106, 0.4);
+    border-radius: 4px;
+    background: #201626;
+    color: var(--accent-2);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .copy-button:hover {
+    background: #2a1d32;
+  }
+
+  .copy-status {
+    min-height: 18px;
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .export-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  select {
+    height: 42px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: #090611;
+    color: var(--text);
+    padding: 0 10px;
+    font: inherit;
+  }
+
+  #exportGif {
+    grid-column: 1 / -1;
+  }
+
+  .preset-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .preset-button {
+    height: 38px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: #100b19;
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .preset-button:hover {
+    border-color: rgba(255, 211, 106, 0.45);
+    color: var(--accent-2);
+  }
+
+  .setting-group {
+    padding-top: 16px;
+    margin-top: 16px;
+    border-top: 1px solid rgba(255, 211, 106, 0.18);
+  }
+
+  .setting-group:first-child {
+    padding-top: 0;
+    margin-top: 0;
+    border-top: 0;
+  }
+
+  .group-title {
+    margin-bottom: 8px;
+    color: var(--accent-2);
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0;
+  }
+
+  body.obs-mode {
+    min-height: 100vh;
+    overflow: hidden;
+    background: transparent;
+  }
+
+  body.obs-mode .wrap {
+    width: 100vw;
+    height: 100vh;
+    padding: 0;
+  }
+
+  body.obs-mode header,
+  body.obs-mode .controls {
+    display: none;
+  }
+
+  body.obs-mode .stage {
+    width: 100vw;
+    height: 100vh;
+    aspect-ratio: auto;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  body.obs-mode #loading {
+    background: transparent;
+  }
+
+  @media (max-width: 760px) {
+    .controls {
+      grid-template-columns: 1fr;
+    }
+
+    .slider-row {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+
+    .val {
+      text-align: left;
+    }
+  }
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <h1>Spyro 1 Text Generator</h1>
+      <p class="description">Generate text faithful to the Spyro 1 3D Font</p>
+    </header>
+
+    <section class="stage" aria-label="Text preview">
+      <canvas id="canvas"></canvas>
+      <div id="loading">Loading font...</div>
+    </section>
+
+    <section class="controls" aria-label="Text generator controls">
+      <div class="panel">
+        <div class="field">
+          <div class="setting-group">
+            <div class="group-title">Text</div>
+            <input id="textInput" type="text" value="HELLO WORLD!" maxlength="32" autocomplete="off" spellcheck="false" />
+          </div>
+
+          <div class="setting-group">
+            <div class="group-title">Color</div>
+            <div class="color-row">
+              <input id="glyphColor" type="color" value="#606000" />
+              <div class="color-readout" id="colorLabel">#606000 · RGB(96,96,0)</div>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="group-title">Export</div>
+            <button id="copyObsLink" class="copy-button" type="button">Copy Browser Source</button>
+            <div id="copyStatus" class="copy-status" aria-live="polite"></div>
+
+            <div class="export-row">
+              <select id="gifFps" aria-label="GIF export frame rate">
+                <option value="30">30 FPS</option>
+                <option value="60">60 FPS</option>
+              </select>
+              <select id="gifWidth" aria-label="GIF export resolution">
+                <option value="720">720p</option>
+                <option value="1080" selected>1080p</option>
+                <option value="1440">1440p</option>
+                <option value="2160">2160p</option>
+              </select>
+            </div>
+            <div class="export-row">
+              <button id="exportGif" class="copy-button" type="button">Export GIF</button>
+            </div>
+            <div id="gifStatus" class="copy-status" aria-live="polite"></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="field">
+          <div class="label">Effects</div>
+          <label class="toggle">
+            <input type="checkbox" id="toggleLetterWobble" checked />
+            Letter wobble
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="toggleShimmer" checked />
+            Shimmer
+          </label>
+        </div>
+
+        <div class="field">
+          <div class="setting-group">
+            <div class="group-title">Wobble</div>
+            <div class="slider-row">
+              <span class="label">Speed</span>
+              <input type="range" id="wobbleSpeed" min="0" max="10" value="7" />
+              <span class="val" id="wobbleSpeedVal">7</span>
+            </div>
+            <div class="slider-row">
+              <span class="label">Intensity</span>
+              <input type="range" id="wobbleIntensity" min="0" max="200" value="100" />
+              <span class="val" id="wobbleIntensityVal">100%</span>
+            </div>
+            <div class="slider-row">
+              <span class="label">Delay</span>
+              <input type="range" id="wobbleDelay" min="0" max="10" step="0.1" value="7" />
+              <span class="val" id="wobbleDelayVal">7</span>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="group-title">Shimmer</div>
+            <div class="slider-row">
+              <span class="label">Speed</span>
+              <input type="range" id="shimmerSpeed" min="0" max="10" value="4" />
+              <span class="val" id="shimmerSpeedVal">4</span>
+            </div>
+            <div class="slider-row">
+              <span class="label">Intensity</span>
+              <input type="range" id="shimmerIntensity" min="0" max="200" value="65" />
+              <span class="val" id="shimmerIntensityVal">65%</span>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="group-title">Stretch</div>
+            <div class="slider-row">
+              <span class="label">X axis</span>
+              <input type="range" id="stretchX" min="25" max="200" value="100" />
+              <span class="val" id="stretchXVal">100%</span>
+            </div>
+            <div class="slider-row">
+              <span class="label">Y axis</span>
+              <input type="range" id="stretchY" min="25" max="200" value="100" />
+              <span class="val" id="stretchYVal">100%</span>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <div class="group-title">Presets</div>
+            <div class="preset-row">
+              <button class="preset-button" type="button" data-preset="accurate">Spyro 1 Accurate</button>
+              <button class="preset-button" type="button" data-preset="subtle">Subtle</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="data.js?v=20260513-18"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "gifenc": "https://unpkg.com/gifenc"
+    }
+  }
+  </script>
+  <script type="module" src="app.js?v=20260513-18"></script>
+</body>
+</html>
+
