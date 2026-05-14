@@ -138,19 +138,22 @@
     color: var(--text);
   }
 
-  input[type="text"] {
+  textarea {
     width: 100%;
-    height: 44px;
-    padding: 0 12px;
+    min-height: 104px;
+    padding: 10px 12px;
     border: 1px solid var(--border);
     border-radius: 4px;
     background: #090611;
     color: var(--accent-2);
     font-size: 20px;
+    font-family: inherit;
+    line-height: 1.25;
     outline: none;
+    resize: vertical;
   }
 
-  input[type="text"]:focus,
+  textarea:focus,
   input[type="color"]:focus,
   input[type="range"]:focus-visible {
     outline: 2px solid rgba(255, 211, 106, 0.32);
@@ -367,7 +370,7 @@
         <div class="field">
           <div class="setting-group">
             <div class="group-title">Text</div>
-            <input id="textInput" type="text" value="HELLO WORLD!" maxlength="32" autocomplete="off" spellcheck="false" />
+            <textarea id="textInput" autocomplete="off" spellcheck="false">HELLO WORLD!</textarea>
           </div>
 
           <div class="setting-group">
@@ -453,6 +456,15 @@
           </div>
 
           <div class="setting-group">
+            <div class="group-title">Spacing</div>
+            <div class="slider-row">
+              <span class="label">Line spacing</span>
+              <input type="range" id="lineSpacing" min="54" max="140" value="84" />
+              <span class="val" id="lineSpacingVal">84</span>
+            </div>
+          </div>
+
+          <div class="setting-group">
             <div class="group-title">Stretch</div>
             <div class="slider-row">
               <span class="label">X axis</span>
@@ -478,7 +490,7 @@
     </section>
   </main>
 
-  <script src="data.js?v=20260513-26"></script>
+  <script src="data.js?v=20260514-02"></script>
   <script type="importmap">
   {
     "imports": {
@@ -487,6 +499,6 @@
     }
   }
   </script>
-  <script type="module" src="app.js?v=20260513-26"></script>
+  <script type="module" src="app.js?v=20260514-02"></script>
 </body>
 </html>

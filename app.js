@@ -23,6 +23,7 @@ let shimmerSpeedVal = 4 / 5;
 let shimmerIntensityVal = 1;
 let stretchXVal = 1;
 let stretchYVal = 1;
+let lineSpacingVal = 84;
 
 // scene setup
 const canvas = document.getElementById('canvas');
@@ -196,11 +197,13 @@ const SPACE_SPACING = SPACING * 0.75;
 const LETTER_SCALE = 1.0;
 
 let currentTotalWidth = 100;
+let currentTotalHeight = 70;
 function fitCameraToAspect(aspect, pad = OBS_MODE ? 1.08 : 1) {
-  const letterHeight = 70 * stretchYVal;
+  const textHeight = currentTotalHeight * stretchYVal;
   const inscriptionWidth = (currentTotalWidth * stretchXVal + 30) * pad;
+  const inscriptionHeight = (textHeight + 30) * pad;
   const targetW = inscriptionWidth * 1.12;
-  const targetH = letterHeight * (pad > 1 ? 1.22 : 1.45);
+  const targetH = inscriptionHeight * (pad > 1 ? 1.12 : 1.22);
   let viewW = targetW;
   let viewH = targetW / aspect;
   if (viewH < targetH) {
@@ -230,42 +233,61 @@ function rebuildText(str) {
   }
   letterMeshes.length = 0;
 
-  const upper = str.toUpperCase();
+  const lines = str
+    .toUpperCase()
+    .replace(/\r\n?/g, '\n')
+    .split('\n');
+  const layoutLines = lines.length ? lines : [''];
+  const lineLayouts = [];
+  let maxLineWidth = SPACING;
 
-  // Lay out characters left to right.
-  let cursorX = 0;
-  const positionsX = [];
-  for (let i = 0; i < upper.length; i++) {
-    const ch = upper[i];
-    if (ch === ' ') {
-      positionsX.push(null);
-      cursorX += SPACE_SPACING;
-    } else if (glyphGeomCache[ch]) {
-      positionsX.push(cursorX);
-      cursorX += SPACING;
-    } else {
-      positionsX.push(null);
-      cursorX += SPACING * 0.6;
+  for (const line of layoutLines) {
+    let cursorX = 0;
+    const chars = [];
+
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      let advance = SPACING * 0.6;
+      let x = null;
+
+      if (ch === ' ') {
+        advance = SPACE_SPACING;
+      } else if (glyphGeomCache[ch]) {
+        x = cursorX;
+        advance = SPACING;
+      }
+
+      chars.push({ ch, x });
+      cursorX += advance;
     }
+
+    const lineWidth = Math.max(SPACING, cursorX > 0 ? cursorX - SPACING : SPACING);
+    maxLineWidth = Math.max(maxLineWidth, lineWidth);
+    lineLayouts.push({ chars, width: lineWidth });
   }
 
-  // Center the string horizontally
-  const totalW = Math.max(SPACING, cursorX - SPACING);
-  const offsetX = -totalW / 2;
-  currentTotalWidth = totalW;
+  currentTotalWidth = maxLineWidth;
+  currentTotalHeight = Math.max(70, (layoutLines.length - 1) * lineSpacingVal + 70);
 
-  // Build meshes
-  for (let i = 0; i < upper.length; i++) {
-    const ch = upper[i];
-    const x = positionsX[i];
-    if (x === null) continue;
-    const geom = glyphGeomCache[ch];
-    if (!geom) continue;
-    const mesh = new THREE.Mesh(geom, flatLitMat);
-    mesh.position.set(offsetX + x, 0, 0);
-    mesh.userData.charIdx = i;
-    textRoot.add(mesh);
-    letterMeshes.push({ mesh, charIdx: i, baseRotY: 0 });
+  // Build meshes, centering each line independently.
+  let visibleCharIdx = 0;
+  const verticalOffset = ((layoutLines.length - 1) * lineSpacingVal) / 2;
+  for (let lineIdx = 0; lineIdx < lineLayouts.length; lineIdx++) {
+    const line = lineLayouts[lineIdx];
+    const offsetX = -line.width / 2;
+    const lineY = verticalOffset - lineIdx * lineSpacingVal;
+
+    for (const item of line.chars) {
+      if (item.x === null) continue;
+      const geom = glyphGeomCache[item.ch];
+      if (!geom) continue;
+      const mesh = new THREE.Mesh(geom, flatLitMat);
+      mesh.position.set(offsetX + item.x, lineY, 0);
+      mesh.userData.charIdx = visibleCharIdx;
+      textRoot.add(mesh);
+      letterMeshes.push({ mesh, charIdx: visibleCharIdx, baseRotY: 0 });
+      visibleCharIdx++;
+    }
   }
 
   textRoot.scale.set(stretchXVal, stretchYVal, 1);
@@ -340,6 +362,11 @@ function setStretchY(percent) {
   refitCamera();
 }
 
+function setLineSpacing(value) {
+  lineSpacingVal = Math.max(54, Math.min(140, value));
+  document.getElementById('lineSpacingVal').textContent = `${Math.round(lineSpacingVal)}`;
+}
+
 function formatSliderValue(value) {
   return Number.isInteger(Number(value)) ? `${Math.round(value)}` : Number(value).toFixed(1);
 }
@@ -363,7 +390,7 @@ function applyUrlParamsToControls() {
   const wobbleInput = document.getElementById('toggleLetterWobble');
   const shimmerInput = document.getElementById('toggleShimmer');
 
-  if (URL_PARAMS.has('text')) textInput.value = URL_PARAMS.get('text').slice(0, 32);
+  if (URL_PARAMS.has('text')) textInput.value = URL_PARAMS.get('text');
   if (URL_PARAMS.has('color')) {
     const raw = URL_PARAMS.get('color').replace('#', '');
     if (/^[0-9a-fA-F]{6}$/.test(raw)) colorInput.value = `#${raw}`;
@@ -386,6 +413,8 @@ function applyUrlParamsToControls() {
     paramNumber('stretchX', Number(document.getElementById('stretchX').value), 25, 200);
   document.getElementById('stretchY').value =
     paramNumber('stretchY', Number(document.getElementById('stretchY').value), 25, 200);
+  document.getElementById('lineSpacing').value =
+    paramNumber('lineSpacing', Number(document.getElementById('lineSpacing').value), 54, 140);
 }
 
 function syncStateFromControls() {
@@ -404,6 +433,7 @@ function syncStateFromControls() {
   setShimmerIntensity(Number(document.getElementById('shimmerIntensity').value));
   setStretchX(Number(document.getElementById('stretchX').value));
   setStretchY(Number(document.getElementById('stretchY').value));
+  setLineSpacing(Number(document.getElementById('lineSpacing').value));
 
   applyColorHex(colorInput.value);
   rebuildText(textInput.value);
@@ -425,6 +455,7 @@ function buildObsLink() {
   url.searchParams.set('shimmerIntensity', document.getElementById('shimmerIntensity').value);
   url.searchParams.set('stretchX', document.getElementById('stretchX').value);
   url.searchParams.set('stretchY', document.getElementById('stretchY').value);
+  url.searchParams.set('lineSpacing', document.getElementById('lineSpacing').value);
   return url.toString();
 }
 
@@ -454,6 +485,7 @@ const PRESETS = {
     shimmerIntensity: 65,
     stretchX: 100,
     stretchY: 100,
+    lineSpacing: 84,
     wobble: true,
     shimmer: true,
   },
@@ -465,6 +497,7 @@ const PRESETS = {
     shimmerIntensity: 65,
     stretchX: 100,
     stretchY: 100,
+    lineSpacing: 84,
     wobble: true,
     shimmer: true,
   },
@@ -482,6 +515,7 @@ function applyPreset(name) {
   document.getElementById('shimmerIntensity').value = p.shimmerIntensity;
   document.getElementById('stretchX').value = p.stretchX;
   document.getElementById('stretchY').value = p.stretchY;
+  document.getElementById('lineSpacing').value = p.lineSpacing;
   syncStateFromControls();
 }
 
@@ -863,6 +897,11 @@ document.getElementById('stretchX').addEventListener('input', e => {
 
 document.getElementById('stretchY').addEventListener('input', e => {
   setStretchY(parseInt(e.target.value));
+});
+
+document.getElementById('lineSpacing').addEventListener('input', e => {
+  setLineSpacing(parseInt(e.target.value));
+  rebuildText(document.getElementById('textInput').value);
 });
 
 document.getElementById('shimmerSpeed').addEventListener('input', e => {
